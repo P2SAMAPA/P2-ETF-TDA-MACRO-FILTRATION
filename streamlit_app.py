@@ -33,7 +33,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown('<h1 style="text-align: center;">🌀 TDA with Macro‑Parameterised Filtrations</h1>', unsafe_allow_html=True)
-st.markdown('<p style="text-align: center;">Rips complex | Macro‑scaled filtration distance | Node degree as topological importance</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align: center;">Rips complex | Macro‑scaled filtration distance | Eigenvector centrality as topological importance</p>', unsafe_allow_html=True)
 
 st.sidebar.markdown("## 🧮 TDA")
 if st.sidebar.button("🔄 Refresh Data", use_container_width=True, type="primary"):
@@ -97,27 +97,27 @@ def display_universe(universe_name, uni_data, window_data, window_label):
             st.markdown(f"""
             <div class="hero-card">
                 <h3>{etf['ticker']}</h3>
-                <p>Topo score: {etf['tda_score_norm']:.3f}</p>
+                <p>Centrality: {etf['tda_score_norm']:.3f}</p>
                 <p style="font-size:0.9rem;">raw: {etf['raw_score']:.4f}</p>
             </div>
             """, unsafe_allow_html=True)
     with st.expander(f"Full ranking for {universe_name}"):
-        df_full = pd.DataFrame(list(norm_scores.items()), columns=["Ticker", "Normalized Topo Score"])
+        df_full = pd.DataFrame(list(norm_scores.items()), columns=["Ticker", "Normalized Centrality"])
         df_full["Raw Score"] = df_full["Ticker"].apply(lambda t: raw_scores[t])
-        df_full = df_full.sort_values("Normalized Topo Score", ascending=False)
+        df_full = df_full.sort_values("Normalized Centrality", ascending=False)
         st.dataframe(df_full, use_container_width=True)
 
 tab1, tab2 = st.tabs(["📊 Best Window (Auto)", "🔍 Choose Window (Manual)"])
 
 with tab1:
-    st.header("🌀 Top ETFs by Macro‑Parameterised Topological Importance (Auto Best Window)")
+    st.header("🌀 Top ETFs by Macro‑Parameterised Topological Centrality (Auto Best Window)")
     with st.expander("📖 Interpretation", expanded=False):
         st.markdown("""
         - **Persistent homology** analyses the topological structure (loops, components) of a point cloud.
         - The **filtration distance** (Rips complex parameter) is scaled by a composite macro factor (from all macro variables).
         - Higher macro factor → smaller filtration distance → finer topological resolution.
-        - The per‑ETF score is the **node degree** in the macro‑adjusted Rips graph – a measure of topological centrality.
-        - High score → ETF is topologically important under current macro conditions.
+        - The per‑ETF score is the **eigenvector centrality** in the macro‑adjusted Rips graph.
+        - High centrality → ETF is topologically important (well‑connected to other important ETFs) under current macro conditions.
         """)
     for universe_name, uni_data in data["universes"].items():
         if not uni_data or not uni_data.get("all_windows"):
@@ -136,7 +136,7 @@ with tab1:
 
 with tab2:
     st.header("🔍 Manual Window Selection")
-    st.markdown("Choose a rolling window to inspect the topological scores.")
+    st.markdown("Choose a rolling window to inspect the topological centrality scores.")
     for universe_name, uni_data in data["universes"].items():
         if not uni_data or not uni_data.get("all_windows"):
             st.warning(f"No window data for {universe_name}")
