@@ -6,7 +6,7 @@ import pandas as pd
 from huggingface_hub import HfApi
 import config
 import data_manager as dm
-from tda_macro import tda_macro_score
+from tda_macro import tda_macro_scores
 
 def normalize_scores(score_dict):
     scores = np.array(list(score_dict.values()))
@@ -29,29 +29,8 @@ def run_for_window(returns, macro_df, window_days):
     macro_window = macro_df.loc[ret_window.index]
     if len(macro_window) < len(ret_window):
         return None
-    raw_scores = {}
-    for ticker in ret_window.columns:
-        # For each ETF, we need a distance matrix of the whole universe? Actually TDA is global.
-        # The score is global to the universe, not per‑ETF. We need a per‑ETF score.
-        # We'll compute the change in Betti-1 when each ETF is removed.
-        # This gives a per‑ETF measure of topological importance.
-        pass
-    # Instead, we'll compute per‑ETF score as its contribution to Betti-1 using eigenvector centrality
-    # For simplicity, we'll compute Betti-1 for the full graph and assign that same score to all?
-    # That would be constant. We'll instead compute the degree centrality (number of close neighbours)
-    # scaled by the macro‑adjusted filtration distance.
-    # Build distance matrix
-    corr = ret_window.corr().values
-    dist = 1 - np.abs(corr)
-    np.fill_diagonal(dist, 0)
-    # Macro factor
-    macro_factor = compute_composite_macro_factor(macro_window)
-    current_macro_factor = macro_factor[-1]
-    scaled_max_distance = config.BASE_MAX_DISTANCE * (1 - current_macro_factor * 0.5)
-    scaled_max_distance = max(0.1, min(0.9, scaled_max_distance))
-    # Build adjacency
-    adj = (dist < scaled_max_distance).astype(int)
-    degrees = np.sum(adj, axis=1)
+    # Compute per‑ETF topological importance (node degree)
+    degrees = tda_macro_scores(ret_window, macro_window, base_max_distance=config.BASE_MAX_DISTANCE)
     raw_scores = {ticker: float(degrees[i]) for i, ticker in enumerate(ret_window.columns)}
     norm_scores = normalize_scores(raw_scores)
     sorted_norm = sorted(norm_scores.items(), key=lambda x: x[1], reverse=True)
