@@ -1,12 +1,16 @@
 import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 import warnings
 warnings.filterwarnings("ignore")
 
 def compute_composite_macro_factor(macro_df):
     """
     Compute a composite macro factor as the first principal component of all macro variables.
+    Returns array of length len(macro_df).
     """
-    from sklearn.decomposition import PCA
+    if macro_df is None or len(macro_df) < 2:
+        return np.ones(len(macro_df)) * 0.5
     scaler = StandardScaler()
     macro_scaled = scaler.fit_transform(macro_df)
     pca = PCA(n_components=1)
@@ -42,10 +46,9 @@ def betti_numbers(dist_matrix, max_distance=0.6, max_dim=1):
         betti1 = max(0, n_edges - n + n_components)
         return n_components, betti1
 
-def tda_macro_score(returns, macro_df, base_max_distance=0.6, max_dim=1):
+def tda_macro_scores(returns, macro_df, base_max_distance=0.6):
     """
-    Compute Betti-1 (number of loops) at a macro‑adjusted filtration distance.
-    Score = Betti-1 (higher = more topological structure).
+    Compute per‑ETF topological importance = node degree in macro‑adjusted Rips graph.
     """
     # Build distance matrix from correlation distance
     corr = returns.corr().values
@@ -58,8 +61,10 @@ def tda_macro_score(returns, macro_df, base_max_distance=0.6, max_dim=1):
     else:
         current_macro_factor = 0.5
     # Adjust max distance based on macro factor
-    # Higher macro factor -> smaller distance (finer filtration)
     scaled_max_distance = base_max_distance * (1 - current_macro_factor * 0.5)
     scaled_max_distance = max(0.1, min(0.9, scaled_max_distance))
-    _, betti1 = betti_numbers(dist, scaled_max_distance, max_dim)
-    return betti1
+    # Build adjacency matrix (edges where distance < scaled threshold)
+    adj = (dist < scaled_max_distance).astype(int)
+    # Node degree (number of close neighbours)
+    degrees = np.sum(adj, axis=1)
+    return degrees
